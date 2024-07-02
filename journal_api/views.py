@@ -1,7 +1,7 @@
 from rest_framework import generics, permissions
 from django.contrib.auth.models import User
 from .models import JournalEntry, Category
-from .serializers import UserSerializer, JournalEntrySerializer, CategorySerializer
+from .serializers import UserSerializer, JournalEntrySerializer, CategorySerializer, UserProfileSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
 
@@ -11,6 +11,14 @@ class UserCreate(generics.CreateAPIView):
 
 class UserLogin(TokenObtainPairView):
     pass
+
+class UserProfile(generics.RetrieveUpdateAPIView):
+    queryset = User.objects.all()
+    serializer_class = UserProfileSerializer
+    permission_classes = [permissions.IsAuthenticated]
+    
+    def get_object(self):
+        return self.request.user
 
 class JournalEntryListCreate(generics.ListCreateAPIView):
     serializer_class = JournalEntrySerializer
