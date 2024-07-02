@@ -1,6 +1,12 @@
 from django.contrib.auth.models import User
 from rest_framework import serializers
-from .models import JournalEntry
+from .models import JournalEntry, Category
+
+class CategorySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Category
+        fields = ('id', 'name')
+
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
