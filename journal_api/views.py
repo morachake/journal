@@ -4,6 +4,8 @@ from .models import JournalEntry, Category
 from .serializers import UserSerializer, JournalEntrySerializer, CategorySerializer, UserProfileSerializer
 from rest_framework_simplejwt.views import TokenObtainPairView
 from drf_yasg.utils import swagger_auto_schema
+from rest_framework.response import Response
+from rest_framework.views import APIView
 
 class UserCreate(generics.CreateAPIView):
     queryset = User.objects.all()
@@ -58,3 +60,12 @@ class CategoryListCreate(generics.ListCreateAPIView):
 
     def perform_create(self, serializer):
         serializer.save(user=self.request.user)
+
+class JournalSummary(APIView):
+    permission_classes = [permissions.IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        user = request.user
+        entries = JournalEntry.objects.filter(user=user)
+        summary = entries.values('category__name').annotate(count=Count('id'))
+        return Response(summary)
