@@ -25,7 +25,25 @@ class UserProfileSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = ('id', 'username', 'email', 'password')
+        extra_kwargs = {
+            'password': {'write_only': True, 'required': False},
+            'email': {'required': False},
+            'username': {'required': False},
+        }
+
+    def update(self, instance, validated_data):
+        if 'password' in validated_data:
+            instance.set_password(validated_data.pop('password'))
+        return super().update(instance, validated_data)
+    
 class JournalEntrySerializer(serializers.ModelSerializer):
+    category_name = serializers.CharField(source='category.name', read_only=True)
+
     class Meta:
         model = JournalEntry
-        fields = ('id', 'user', 'title', 'content', 'category', 'date')
+        fields = ('id', 'user', 'title', 'content', 'category_name', 'date')
+        read_only_fields = ['id', 'user', 'category_name']
+    
+    def create(self, validated_data):
+        validated_data['user'] = self.context['request'].user
+        return super().create(validated_data)

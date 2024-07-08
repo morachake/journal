@@ -5,6 +5,7 @@ from .models import JournalEntry, Category
 from .serializers import UserSerializer, UserProfileSerializer, JournalEntrySerializer, CategorySerializer
 from rest_framework.views import APIView
 from rest_framework.response import Response
+from rest_framework import status
 from django.db.models import Count
 from datetime import datetime, timedelta
 import pytz
@@ -29,6 +30,8 @@ class UserLogin(TokenObtainPairView):
         responses={200: 'JWT token response'}
     )
     def post(self, request, *args, **kwargs):
+        if request.content_type != 'application/json':
+            return Response({"detail": f"Unsupported media type \"{request.content_type}\" in request."}, status=status.HTTP_415_UNSUPPORTED_MEDIA_TYPE)
         return super().post(request, *args, **kwargs)
 
 class UserProfile(generics.RetrieveUpdateAPIView):
@@ -48,7 +51,16 @@ class UserProfile(generics.RetrieveUpdateAPIView):
         responses={200: UserProfileSerializer()}
     )
     def put(self, request, *args, **kwargs):
-        return super().put(request, *args, **kwargs)
+        partial = kwargs.pop('partial', False)
+        instance = self.get_object()
+        serializer = self.get_serializer(instance, data=request.data, partial=partial)
+        serializer.is_valid(raise_exception=True)
+        self.perform_update(serializer)
+
+        if getattr(instance, '_prefetched_objects_cache', None):
+            instance._prefetched_objects_cache = {}
+
+        return Response(serializer.data)
 
     def get_object(self):
         return self.request.user
@@ -62,6 +74,8 @@ class JournalEntryListCreate(generics.ListCreateAPIView):
         responses={200: JournalEntrySerializer(many=True)}
     )
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return JournalEntry.objects.none()
         return JournalEntry.objects.filter(user=self.request.user)
 
     @swagger_auto_schema(
@@ -100,6 +114,8 @@ class JournalEntryDetail(generics.RetrieveUpdateDestroyAPIView):
         return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return JournalEntry.objects.none()
         return JournalEntry.objects.filter(user=self.request.user)
 
 class CategoryListCreate(generics.ListCreateAPIView):
@@ -111,6 +127,8 @@ class CategoryListCreate(generics.ListCreateAPIView):
         responses={200: CategorySerializer(many=True)}
     )
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Category.objects.none()
         return Category.objects.filter(user=self.request.user)
 
     @swagger_auto_schema(
@@ -149,6 +167,8 @@ class CategoryDetail(generics.RetrieveUpdateDestroyAPIView):
         return super().delete(request, *args, **kwargs)
 
     def get_queryset(self):
+        if getattr(self, 'swagger_fake_view', False):
+            return Category.objects.none()
         return Category.objects.filter(user=self.request.user)
 
 class JournalSummary(APIView):
@@ -167,11 +187,11 @@ class JournalSummary(APIView):
         
         now = datetime.now(pytz.utc)
 
-        if period == 'daily':
+        if (period == 'daily'):
             start_date = now - timedelta(days=1)
-        elif period == 'weekly':
+        elif (period == 'weekly'):
             start_date = now - timedelta(weeks=1)
-        elif period == 'monthly':
+        elif (period == 'monthly'):
             start_date = now - timedelta(days=30)
         else:
             return Response({"error": "Invalid period parameter"}, status=400)
