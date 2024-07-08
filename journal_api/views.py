@@ -83,6 +83,7 @@ class JournalEntryListCreate(generics.ListCreateAPIView):
         responses={201: JournalEntrySerializer()}
     )
     def post(self, request, *args, **kwargs):
+        print("Request data:", request.data)  # Add this line to print request data
         return super().post(request, *args, **kwargs)
 
     def perform_create(self, serializer):
@@ -187,11 +188,11 @@ class JournalSummary(APIView):
         
         now = datetime.now(pytz.utc)
 
-        if (period == 'daily'):
+        if period == 'daily':
             start_date = now - timedelta(days=1)
-        elif (period == 'weekly'):
+        elif period == 'weekly':
             start_date = now - timedelta(weeks=1)
-        elif (period == 'monthly'):
+        elif period == 'monthly':
             start_date = now - timedelta(days=30)
         else:
             return Response({"error": "Invalid period parameter"}, status=400)
